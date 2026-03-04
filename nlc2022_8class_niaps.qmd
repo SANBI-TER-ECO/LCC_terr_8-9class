@@ -1,12 +1,4 @@
-------------------------------------------------------------------------
-
-------------------------------------------------------------------------
-
-### Workflow for combining NIAPS 2023 data with 7 class version of the NLC 2022
-
-Date: 20260210
-
-Author: A.L. Skowno
+### Workflow for producing an 8 class land cover raster that includes invasive species data
 
 This workflow combines national data on invasive plant species with land cover data 2022.
 
@@ -16,12 +8,12 @@ library(terra)
 library(tidyverse)
 ```
 
-South African National Land Cover data set for 2022 (prepared by the National Department of Forestry, Fisheries and the Environment). The 72 classes were are reclassified to 7 classes
+South African National Land Cover data set for 2022 (prepared by the National Department of Forestry, Fisheries and the Environment). The 72 classes were reclassified to 7 classes.
 
 National Invasive Alien Plant Survey (NIAPS) ([Kotzé et al. 2025](#0)) estimated the extent of the most-widespread & abundant, terrestrial invasive alien plant taxa (approx. 32 species) in South Africa. Data were downloaded from an ARCPRO package available [here](#0). Each raster has pixel values (0-100) that represent the area invaded divided by condensed area invaded for 32 Invasive plant taxa organised into 13 rasters. Values of 100 represent 100% invasion (effectively 100% canopy cover of the specific invasive species) (see [Marais et al. 2004](https://journals.co.za/doi/10.10520/EJC96205)) for explanation of the concept of "condensed area"). Note the data is unprojected (EPSG 4326).
 
 ```{r}
-### Data sources & import:
+### Se up data sources & import land cover:
 
 # Base data path from .Renviron
 data_path <- Sys.getenv("DATA")
@@ -42,7 +34,7 @@ lc2022 <- rast(lc2022_fp)
 ```
 
 ```{r}
-
+# import the NIPAS rasters 
 # Species prefixes for each NIAPS dataset
 species <- c(
   "AcacCycl", "AcacSali", "ArunDona", "ChroOdor",
@@ -106,16 +98,6 @@ reclass_niaps <- matrix(c(
 # Reclassify the summed invasives data using the matrix
 niaps_sum_rc <- classify(niaps_sum, rcl = reclass_niaps)
 
-# Large raster outputs are written to the directory defined in the DATA environment variable.
- 
-  # Define subfolder
-out_dir <- file.path(data_path, "R_outputs")
-   # Set output file path and name
-outfile <- file.path(out_dir, "niaps_sum_rc.tif")
-   # Write a compressed Geo Tiff
-writeRaster(niaps_sum_rc, outfile, datatype = "INT1U", gdal = c("COMPRESS=LZW"), overwrite = TRUE)
-
- #lc2022_8class_niaps50 <- rast("C:/Users/skownoa/Dropbox/NBAwork/R_outputs/lc2022_8class_niaps50.tif")
 ```
 
 #### Analysis
@@ -130,15 +112,21 @@ lc2022_8class_niaps50 <-  ifel(niaps_sum_rc >= 5 & lc2022 == 1, 8, lc2022)
 # Aggregate to 100m resolution 
 lc2022_8class_niaps50_100m <- aggregate(lc2022_8class_niaps50, fact = 5, fun = "modal", na.rm = TRUE)
 
-# output 100m version 
+  # output 100m version 
+  # Define subfolder
+out_dir <- file.path(data_path, "R_outputs")
+
 # Set output file path and name (out dir previously defined)
 outfile <- file.path(out_dir, "lc2022_8class_niaps50_100m.tif")
 # Write a compressed Geo Tiff
+
 writeRaster(lc2022_8class_niaps50_100m, outfile, datatype = "INT1U", gdal = c("COMPRESS=LZW"), overwrite = TRUE)
 
 #output the 20m version 
 # Set output file path and name (out dir previously defined)
+
 outfile <- file.path(out_dir, "lc2022_8class_niaps50.tif")
 # Write a compressed Geo Tiff
+
 writeRaster(lc2022_8class_niaps50, outfile, datatype = "INT1U", gdal = c("COMPRESS=LZW"), overwrite = TRUE)
 ```
